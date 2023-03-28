@@ -104,10 +104,12 @@ def show_expanded(tree, expand_macros, **kw):
 def trace_walk_func(tree, exact_src):
     @macropy.core.walkers.Walker
     def trace_walk(tree, stop, **kw):
+        is_del_or_store = isinstance(tree, ast.Subscript) and isinstance(tree.ctx, (ast.Store, ast.Del))
 
         if (isinstance(tree, ast.expr) and
             tree._fields != () and
-            type(tree) is not ast.Name):  # noqa: E129
+            type(tree) is not ast.Name and 
+            not is_del_or_store):  # noqa: E129
 
             try:
                 literal_eval(tree)
@@ -122,11 +124,21 @@ def trace_walk_func(tree, exact_src):
 
         elif isinstance(tree, ast.stmt):
             txt = exact_src(tree)
+            # if isinstance(tree, ast.Assign):
+            #     print("h", tree.targets, exact_src(tree.targets[0]), tree.value)
             trace_walk.walk_children(tree)
             with hq as code:
                 unhygienic[log](u[txt])
             stop()
             return [code, tree]
+        elif is_del_or_store:
+            txt = exact_src(tree)
+            # TODO: fix me!
+            # trace_walk.walk_children(tree)
+            # with hq as code:
+            #     unhygienic[log](u[txt])
+            stop()
+            return tree
 
     return trace_walk.recurse(tree)
 

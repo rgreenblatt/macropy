@@ -39,8 +39,6 @@ def indexer(tree, collect, **kw):
 _transforms = {
     ast.GeneratorExp: "(%s)",
     ast.ListComp: "[%s]",
-    ast.SetComp: "{%s}",
-    ast.DictComp: "{%s}"
 }
 
 
