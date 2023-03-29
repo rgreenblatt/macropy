@@ -105,11 +105,13 @@ def trace_walk_func(tree, exact_src):
     @macropy.core.walkers.Walker
     def trace_walk(tree, stop, **kw):
         is_del_or_store = isinstance(tree, ast.Subscript) and isinstance(tree.ctx, (ast.Store, ast.Del))
+        is_attribute_assign = isinstance(tree, ast.Attribute) and isinstance(tree.ctx, (ast.Store, ast.Del))
 
         if (isinstance(tree, ast.expr) and
             tree._fields != () and
-            type(tree) is not ast.Name and 
-            not is_del_or_store):  # noqa: E129
+            type(tree) is not ast.Name and
+            not is_del_or_store and
+            not is_attribute_assign):  # noqa: E129
 
             try:
                 literal_eval(tree)
@@ -133,7 +135,6 @@ def trace_walk_func(tree, exact_src):
             return [code, tree]
         elif is_del_or_store:
             assert isinstance(tree, ast.Subscript)
-            txt = exact_src(tree)
             if isinstance(tree.slice, ast.Index):
                 tree.slice.value = trace_walk.recurse(tree.slice.value)
             else:
@@ -144,7 +145,11 @@ def trace_walk_func(tree, exact_src):
                     tree.slice.upper = trace_walk.recurse(tree.slice.upper)
                 if tree.slice.step is not None:
                     tree.slice.step = trace_walk.recurse(tree.slice.step)
-            # print("out", ast.dump(tree))
+            stop()
+            return tree
+        elif is_attribute_assign:
+            assert isinstance(tree, ast.Attribute)
+            tree.value = trace_walk.recurse(tree.value)
             stop()
             return tree
 
