@@ -57,13 +57,30 @@ class Walker(object):
     def __init__(self, func):
         self.func = func
 
-    def walk_children(self, tree, sub_kw=[], **kw):
+    def walk_children(
+        self, tree, sub_kw=[], skip_assign_target_if_tuple: bool = False, **kw
+    ):
         if isinstance(tree, ast.AST):
             aggregates = []
 
             for field, old_value in ast.iter_fields(tree):
 
                 old_value = getattr(tree, field, None)
+
+                if (skip_assign_target_if_tuple and
+                    (isinstance(tree, ast.Assign) and
+                    field in "targets" and
+                    isinstance(old_value, list) and
+                    isinstance(old_value[0], ast.Tuple)) or
+                    (isinstance(tree, ast.comprehension) and
+                    field in "target" and
+                    isinstance(old_value, ast.Tuple)) or 
+                    (isinstance(tree, ast.For) and
+                    field in "target" and
+                    isinstance(old_value, ast.Tuple))
+                ):
+
+                    continue
                 specific_sub_kw = [
                     (k, v)
                     for item, kws in sub_kw

@@ -119,24 +119,32 @@ def trace_walk_func(tree, exact_src):
                 txt = exact_src(tree)
                 trace_walk.walk_children(tree)
                 wrapped = hq[wrap(unhygienic[log], u[txt], ast_literal[tree])]
+                assert isinstance(wrapped.args[0], ast.Name)
+                wrapped.args[0].ctx = ast.Load()
                 stop()
                 return wrapped
 
         elif isinstance(tree, ast.stmt):
             txt = exact_src(tree)
-            # if isinstance(tree, ast.Assign):
-            #     print("h", tree.targets, exact_src(tree.targets[0]), tree.value)
-            trace_walk.walk_children(tree)
+            trace_walk.walk_children(tree, skip_assign_target_if_tuple=True)
             with hq as code:
                 unhygienic[log](u[txt])
             stop()
             return [code, tree]
         elif is_del_or_store:
+            assert isinstance(tree, ast.Subscript)
             txt = exact_src(tree)
-            # TODO: fix me!
-            # trace_walk.walk_children(tree)
-            # with hq as code:
-            #     unhygienic[log](u[txt])
+            if isinstance(tree.slice, ast.Index):
+                tree.slice.value = trace_walk.recurse(tree.slice.value)
+            else:
+                assert isinstance(tree.slice, ast.Slice)
+                if tree.slice.lower is not None:
+                    tree.slice.lower = trace_walk.recurse(tree.slice.lower)
+                if tree.slice.upper is not None:
+                    tree.slice.upper = trace_walk.recurse(tree.slice.upper)
+                if tree.slice.step is not None:
+                    tree.slice.step = trace_walk.recurse(tree.slice.step)
+            # print("out", ast.dump(tree))
             stop()
             return tree
 

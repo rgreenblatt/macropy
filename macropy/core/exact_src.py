@@ -60,7 +60,11 @@ def exact_src(tree, src, **kw):
             prelim = _transforms.get(type(tree), "%s") % prelim
 
             if isinstance(tree, ast.stmt):
-                prelim = prelim.replace("\n" + " " * tree.col_offset, "\n")
+                if isinstance(tree, ast.If) and not prelim.startswith("if "):
+                    # scary hack!!! (only works correctly if code is formatted...)
+                    prelim = prelim.replace("\n" + " " * (tree.col_offset - 5), "\n")
+                else:
+                    prelim = prelim.replace("\n" + " " * tree.col_offset, "\n")
 
             if isinstance(tree, list):
                 prelim = prelim.replace("\n" + " " * tree[0].col_offset, "\n")
@@ -76,6 +80,9 @@ def exact_src(tree, src, **kw):
 
             except SyntaxError as e:
                 pass
+        if isinstance(tree, ast.If):
+            # hack
+            return "elif " + prelim
         raise ExactSrcException()
 
     positions = Lazy(lambda: indexer.collect(tree))
