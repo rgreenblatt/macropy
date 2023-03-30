@@ -43,16 +43,21 @@ _transforms = {
 
 
 @register(injected_vars)
-def exact_src(tree, src, **kw):
-
+def exact_src(tree, src, show_line_nums: bool = False, **kw):
     def exact_src_imp(tree, src, indexes, line_lengths):
         all_child_pos = sorted(indexer.collect(tree))
         start_index = linear_index(line_lengths(), *all_child_pos[0])
 
         last_child_index = linear_index(line_lengths(), *all_child_pos[-1])
 
-        first_successor_index = indexes()[min(indexes().index(last_child_index)+1,
-                                              len(indexes())-1)]
+        idxs_idx = min(indexes().index(last_child_index)+1,
+                                              len(indexes())-1)
+        first_successor_index = indexes()[idxs_idx]
+
+        while first_successor_index <= last_child_index and idxs_idx < len(indexes())-1:
+            idxs_idx += 1
+            first_successor_index = indexes()[idxs_idx]
+
 
         for end_index in range(last_child_index, first_successor_index+1):
 
@@ -85,6 +90,7 @@ def exact_src(tree, src, **kw):
             return "elif " + prelim
         raise ExactSrcException()
 
+    # TODO: fix function return type hints!
     positions = Lazy(lambda: indexer.collect(tree))
     line_lengths = Lazy(lambda: list(map(len, src.split("\n"))))
     indexes = Lazy(lambda: distinct([linear_index(line_lengths(), l, c)
