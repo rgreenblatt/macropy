@@ -295,8 +295,7 @@ def log(
         return
 
     if line_cache is not None:
-        if split[0] in line_cache:
-            assert all(sp in line_cache for sp in split)
+        if all(sp in line_cache for sp in split):
             split = [truncate_line(sp) for sp in split]
             if len(split) > 2:
                 split = [split[0], "…", split[-1]]
