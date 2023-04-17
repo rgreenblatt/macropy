@@ -64,6 +64,10 @@ def exact_src(tree, src, show_line_nums: bool = False, **kw):
             prelim = src[start_index:end_index]
             prelim = _transforms.get(type(tree), "%s") % prelim
 
+            # yet another horrible hack
+            if prelim.count(")") > prelim.count("("):
+                prelim = ("(" * (prelim.count(")") - prelim.count("("))) + prelim
+
             if isinstance(tree, ast.stmt):
                 if isinstance(tree, ast.If) and not prelim.startswith("if "):
                     # scary hack!!! (only works correctly if code is formatted...)
@@ -88,7 +92,7 @@ def exact_src(tree, src, show_line_nums: bool = False, **kw):
         if isinstance(tree, ast.If):
             # hack
             return "elif " + prelim
-        raise ExactSrcException()
+        raise ExactSrcException(f"{tree}, all_child_pos={all_child_pos} start_index={start_index} last_child_index={last_child_index} first_successor_index={first_successor_index} end_index={end_index} prelim={prelim} prelim before={src[start_index:last_child_index]}")
 
     # TODO: fix function return type hints!
     positions = Lazy(lambda: indexer.collect(tree))
